@@ -1,0 +1,20 @@
+{
+  "name": "decidex",
+  "version": "0.1.0",
+  "description": "AI coding tool memory — capture engineering decisions, never re-explain them",
+  "bin": {
+    "decidex": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@decidex/core": "*",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.0"
+  }
+}
