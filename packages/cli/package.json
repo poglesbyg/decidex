@@ -1,17 +1,30 @@
 {
   "name": "decidex",
   "version": "0.1.0",
-  "description": "AI coding tool memory — capture engineering decisions, never re-explain them",
+  "description": "Capture engineering decisions so your AI tools never forget them",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/decidex/decidex.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/decidex/decidex#readme",
+  "keywords": ["ai", "claude", "decisions", "engineering", "mcp", "cursor", "copilot", "cli"],
   "bin": {
     "decidex": "./dist/main.js"
   },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
     "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@decidex/core": "*",
+    "@decidex/core": "^0.1.0",
     "commander": "^12.0.0"
   },
   "devDependencies": {

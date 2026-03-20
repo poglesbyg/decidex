@@ -1,18 +1,33 @@
 {
   "name": "@decidex/mcp",
   "version": "0.1.0",
-  "private": true,
-  "description": "MCP server — surfaces engineering decisions to Claude Code",
+  "description": "MCP server for decidex — surfaces engineering decisions to Claude Code",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/decidex/decidex.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/decidex/decidex#readme",
+  "keywords": ["ai", "claude", "mcp", "decisions", "engineering"],
   "bin": {
     "decidex-mcp": "./dist/index.js"
   },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
     "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@decidex/core": "*",
+    "@decidex/core": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.10.0"
   },
   "devDependencies": {
