@@ -1,26 +1,11 @@
 # TODOS
 
-## Phase 1b — Next Engineering Work
+## Phase 1b — SHIPPED ✓
 
-### Ollama Model Quality Warning (added from eng review)
-**What:** On first `--local` run, check available Ollama models, recommend `llama3:8b` minimum, warn if only smaller/weaker models are installed.
-**Why:** Ollama quality varies wildly by model. A user with `mistral:7b` will see poor decision extraction and blame decidex.
-**Pros:** Prevents churn from bad first impressions of `--local` mode. Could auto-select best available model.
-**Cons:** Adds complexity to the `--local` path.
-**Context:** Check `ollama list` output, parse model names, warn if nothing >= recommended tier.
-**Effort:** S (human: 1 day / CC: 20min)
-**Depends on:** `--local` flag shipped in Phase 1
-
----
-
-### `decidex generate --watch` mode
-**What:** Watch the git repo for new commits and re-run classification incrementally (only new commits since last run).
-**Why:** Zero-friction ongoing CLAUDE.md updates without remembering to run manually. Also enables a git post-commit hook integration.
-**Pros:** Viral — users see it updating automatically and share with teammates. Incremental classification is also needed for the large-repo batching anyway.
-**Cons:** Long-running process. Background failures need visible error reporting.
-**Context:** Requires storing a "last classified commit hash" in `.decidex/state.json`. fswatch or `chokidar` for file watching.
-**Effort:** S (human: 2 days / CC: 20min)
-**Depends on:** Phase 1 generate command shipped
+- ✓ Ollama model quality warning — `checkOllamaModels()` in `git-classifier.ts`
+- ✓ `decidex generate --watch` mode — incremental via `.decidex/state.json` + poll loop
+- ✓ Multi-tool injection — `--tools cursor,copilot,windsurf` writes to tool context files
+- ✓ MCP server — `packages/mcp/` with `get_decisions` and `get_stats` tools
 
 ---
 

@@ -11,10 +11,15 @@ import {
   installPreCommitHook,
   writeDecision,
   newDecisionId,
+  getDecisions,
+  readState,
+  writeState,
+  injectDecisions,
   type ClassifierInterface,
   type GenerateOptions,
+  type InjectionTarget,
 } from "@decidex/core";
-import { getCommits, getRepoRoot, getRepoName, getGitAuthor, isGitRepo } from "./git.js";
+import { getCommits, getCommitsSince, getRepoRoot, getRepoName, getGitAuthor, isGitRepo, getHeadCommit } from "./git.js";
 
 /** Run the generate command end-to-end. */
 export async function runGenerate(
@@ -34,16 +39,31 @@ export async function runGenerate(
   const repoName = getRepoName(repoRoot);
   const author = getGitAuthor(repoRoot);
 
-  // 2. Fetch commits
-  const since = opts.since ?? "90d";
-  console.log(`→ Reading git history (--since=${since})…`);
-  const commits = getCommits(repoRoot, since);
+  // 2. Fetch commits — incremental if state exists and not overridden
+  const state = readState(repoRoot);
+  let commits;
+  let isIncremental = false;
+
+  if (state && !opts.since) {
+    // Incremental: only classify commits since last run
+    commits = getCommitsSince(repoRoot, state.lastCommitHash);
+    isIncremental = true;
+    console.log(`→ Incremental run — ${commits.length} new commits since last run`);
+  } else {
+    const since = opts.since ?? "90d";
+    console.log(`→ Reading git history (--since=${since})…`);
+    commits = getCommits(repoRoot, since);
+  }
 
   if (commits.length === 0) {
-    console.log("No git history found. Creating minimal CLAUDE.md template.");
-    const claudeMD = path.join(repoRoot, ".claude", "CLAUDE.md");
-    mergeCLAUDEMD(claudeMD, []);
-    console.log(`✓ Created ${claudeMD}`);
+    if (isIncremental) {
+      console.log("✓ No new commits since last run. CLAUDE.md is up to date.");
+    } else {
+      console.log("No git history found. Creating minimal CLAUDE.md template.");
+      const claudeMDPath = path.join(repoRoot, "CLAUDE.md");
+      mergeCLAUDEMD(claudeMDPath, []);
+      console.log(`✓ Created ${claudeMDPath}`);
+    }
     return;
   }
 
@@ -80,7 +100,7 @@ export async function runGenerate(
       let model = opts.ollamaModel;
       if (!model) {
         console.log("→ Checking available Ollama models…");
-        const { model: detected, warning } = await checkOllamaModels(ollamaUrl).catch((err) => {
+        const { model: detected, warning } = await checkOllamaModels(ollamaUrl).catch((err: Error) => {
           console.error(`✗ ${err.message}`);
           process.exitCode = 1;
           throw err;
@@ -111,7 +131,7 @@ export async function runGenerate(
 
   if (result.batchErrors.length > 0) {
     console.warn(`⚠  ${result.batchErrors.length} batch(es) failed:`);
-    result.batchErrors.forEach((e) => console.warn(`   ${e}`));
+    result.batchErrors.forEach((e: string) => console.warn(`   ${e}`));
     if (result.decisions.length === 0) {
       console.error("✗ All batches failed. No decisions extracted.");
       process.exitCode = 1;
@@ -144,12 +164,9 @@ export async function runGenerate(
   console.log(`✓ Captured ${result.decisions.length} decisions → .decisions/`);
 
   // 7. Update CLAUDE.md
-  const claudeMDPath = path.join(repoRoot, ".claude", "CLAUDE.md");
-  const decisionSummaries = result.decisions
-    .slice(0, 20)
-    .map((d) => d.text);
-
-  const mergeResult = mergeCLAUDEMD(claudeMDPath, decisionSummaries);
+  const claudeMDPath = path.join(repoRoot, "CLAUDE.md");
+  const allDecisions = getDecisions(repoRoot, "", 20).map((d) => d.text);
+  const mergeResult = mergeCLAUDEMD(claudeMDPath, allDecisions);
   const stateMsg =
     mergeResult.state === "created"
       ? "Created"
@@ -158,7 +175,16 @@ export async function runGenerate(
       : "Prepended to";
   console.log(`✓ ${stateMsg} ${claudeMDPath}`);
 
-  // 8. Install pre-commit hook
+  // 8. Inject into additional AI tool context files (if --tools specified)
+  if (opts.tools && opts.tools.length > 0) {
+    const results = injectDecisions(repoRoot, allDecisions, opts.tools as InjectionTarget[]);
+    for (const r of results) {
+      const action = r.state === "created" ? "Created" : r.state === "updated" ? "Updated" : "Prepended to";
+      console.log(`✓ ${action} ${r.filePath}`);
+    }
+  }
+
+  // 9. Install pre-commit hook
   try {
     installPreCommitHook(repoRoot);
     console.log("✓ Secret scanner pre-commit hook installed");
@@ -166,9 +192,58 @@ export async function runGenerate(
     console.warn(`⚠  Could not install pre-commit hook: ${(err as Error).message}`);
   }
 
+  // 10. Persist state for incremental runs
+  const headHash = getHeadCommit(repoRoot);
+  if (headHash) {
+    const prevTotal = state?.totalDecisions ?? 0;
+    writeState(repoRoot, {
+      lastCommitHash: headHash,
+      lastRunAt: timestamp,
+      totalDecisions: prevTotal + result.decisions.length,
+    });
+  }
+
   console.log("\n✓ Done! Your AI tools now know your engineering decisions.");
   console.log('  Run "decidex stats" to see what was captured.');
   if (!opts.local) {
     console.log("  Tip: add --local to use Ollama for free private classification.");
   }
+}
+
+/** Run in watch mode: poll for new commits every `intervalMs` and re-classify incrementally. */
+export async function runWatch(
+  cwd: string,
+  opts: GenerateOptions,
+  intervalMs = 60_000
+): Promise<void> {
+  if (!isGitRepo(cwd)) {
+    console.error("✗ Not a git repo. Run from your project root.");
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`→ Watch mode active (checking every ${intervalMs / 1000}s). Ctrl-C to stop.`);
+
+  // Run immediately on start
+  await runGenerate(cwd, { ...opts, yes: true });
+
+  const interval = setInterval(async () => {
+    const repoRoot = getRepoRoot(cwd);
+    const state = readState(repoRoot);
+    if (!state) {
+      await runGenerate(cwd, { ...opts, yes: true });
+      return;
+    }
+    const newCommits = getCommitsSince(repoRoot, state.lastCommitHash);
+    if (newCommits.length === 0) return; // nothing new
+    console.log(`\n→ ${newCommits.length} new commit(s) detected — classifying…`);
+    await runGenerate(cwd, { ...opts, yes: true });
+  }, intervalMs);
+
+  // Keep process alive; exit gracefully on SIGINT
+  process.on("SIGINT", () => {
+    clearInterval(interval);
+    console.log("\n✓ Watch mode stopped.");
+    process.exit(0);
+  });
 }

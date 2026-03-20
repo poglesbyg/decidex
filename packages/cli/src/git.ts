@@ -44,6 +44,17 @@ export function getGitAuthor(repoRoot: string): string {
   }
 }
 
+/** Get the HEAD commit SHA. Returns null if the repo has no commits. */
+export function getHeadCommit(repoRoot: string): string | null {
+  try {
+    return execSync("git rev-parse HEAD", { cwd: repoRoot, stdio: "pipe" })
+      .toString()
+      .trim();
+  } catch {
+    return null;
+  }
+}
+
 /** Fetch commits from git log. Optionally filtered by --since. */
 export function getCommits(repoRoot: string, since?: string): CommitEntry[] {
   const sinceArg = since ? `--since="${since}"` : "";
@@ -68,4 +79,29 @@ export function getCommits(repoRoot: string, since?: string): CommitEntry[] {
       return { hash: hash.trim(), subject: subject.trim(), body: body.trim() };
     })
     .filter((c) => c.hash.length === 40); // valid SHA only
+}
+
+/**
+ * Fetch commits newer than a given commit SHA.
+ * Used for incremental classification in `--watch` mode.
+ */
+export function getCommitsSince(repoRoot: string, afterHash: string): CommitEntry[] {
+  const format = "--format=%H%x1f%s%x1f%b%x1e";
+  // `afterHash..HEAD` returns commits reachable from HEAD but not from afterHash
+  const cmd = `git log ${afterHash}..HEAD ${format}`;
+  let raw: string;
+  try {
+    raw = execSync(cmd, { cwd: repoRoot, stdio: "pipe", maxBuffer: 50 * 1024 * 1024 }).toString();
+  } catch {
+    return [];
+  }
+  return raw
+    .split("\x1e")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const [hash = "", subject = "", body = ""] = entry.split("\x1f");
+      return { hash: hash.trim(), subject: subject.trim(), body: body.trim() };
+    })
+    .filter((c) => c.hash.length === 40);
 }

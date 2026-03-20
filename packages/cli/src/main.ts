@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { runGenerate } from "./generate.js";
+import { runGenerate, runWatch } from "./generate.js";
 import { runStats } from "./stats.js";
 
 const program = new Command();
@@ -18,14 +18,28 @@ program
   .option("--local", "Use local Ollama model instead of Claude API (free, private)")
   .option("--model <name>", "Ollama model to use with --local (e.g. llama3, mistral)")
   .option("--dry-run", "Count commits and show cost estimate without calling the API")
+  .option(
+    "--tools <list>",
+    "Also inject decisions into AI tool context files. Comma-separated: cursor,copilot,windsurf",
+    (val: string) => val.split(",").map((s) => s.trim()).filter(Boolean)
+  )
+  .option("--watch", "Watch for new commits and re-classify incrementally (runs every 60s)")
   .action(async (opts) => {
-    await runGenerate(process.cwd(), {
+    const options = {
       since: opts.since,
       yes: opts.yes,
       local: opts.local,
       ollamaModel: opts.model,
       dryRun: opts.dryRun,
-    });
+      tools: opts.tools,
+      watch: opts.watch,
+    };
+
+    if (opts.watch) {
+      await runWatch(process.cwd(), options);
+    } else {
+      await runGenerate(process.cwd(), options);
+    }
   });
 
 program

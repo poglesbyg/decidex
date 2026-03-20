@@ -38,6 +38,8 @@ export interface GenerateOptions {
   local?: boolean;      // use Ollama instead of Claude API
   ollamaModel?: string; // override Ollama model
   dryRun?: boolean;     // count commits, show estimate, exit
+  tools?: string[];     // additional AI tools to inject into: "cursor", "copilot", "windsurf"
+  watch?: boolean;      // watch for new commits and re-classify incrementally
 }
 
 /** Stats about the local decision store. */
