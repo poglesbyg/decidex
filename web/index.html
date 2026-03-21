@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>decidex — engineering decisions that stick</title>
+  <meta name="description" content="decidex extracts engineering decisions from your git history and surfaces them in Claude Code, Cursor, Copilot, and Windsurf — so your AI tools know what you've already decided, and why.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- NAVIGATION -->
+  <nav id="nav" role="navigation" aria-label="Main navigation">
+    <div class="container nav-inner">
+      <span class="nav-logo" aria-label="decidex">decidex</span>
+      <div class="nav-actions">
+        <a href="https://github.com/poglesbyg/decidex" class="btn btn-ghost nav-github" aria-label="View on GitHub">GitHub</a>
+        <a href="#install" class="btn btn-primary">npm install</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <h1>AI coding tools forget.<br>decidex fixes that.</h1>
+      <p class="hero-sub">decidex extracts engineering decisions from your git history and surfaces them in Claude&nbsp;Code, Cursor, Copilot, and Windsurf — so your AI tools know what you've already decided, and&nbsp;why.</p>
+      <div class="hero-cta">
+        <div class="term-block copy-block" role="region" aria-label="Install command">
+          <span class="t-dim">$</span>
+          <span class="cmd-text">npm install -g decidex</span>
+          <button class="copy-btn" aria-label="Copy npm install command" data-copy="npm install -g decidex">copy</button>
+        </div>
+        <p class="hero-sub-cta"><span class="t-dim">or</span> <code>npx decidex generate</code> — no install needed</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" aria-labelledby="how-heading">
+    <div class="container">
+      <h2 id="how-heading">How it works</h2>
+      <div class="term-block pipeline" role="region" aria-label="How decidex works">
+        <div class="pipeline-step">
+          <span class="t-accent">git log</span>
+          <span class="t-dim"> ── </span>
+          <span class="t-muted">your commit history</span>
+        </div>
+        <div class="pipeline-arrow"><span class="t-dim">         ↓</span></div>
+        <div class="pipeline-step">
+          <span class="t-accent">Claude API</span>
+          <span class="t-dim"> ── </span>
+          <span class="t-muted">classifies decisions, extracts rationale</span>
+        </div>
+        <div class="pipeline-arrow"><span class="t-dim">         ↓</span></div>
+        <div class="pipeline-step">
+          <span class="t-accent">.decisions/</span>
+          <span class="t-dim"> ── </span>
+          <span class="t-muted">plain markdown, committed to git</span>
+        </div>
+        <div class="pipeline-arrow"><span class="t-dim">         ↓</span></div>
+        <div class="pipeline-outputs">
+          <span class="t-green">CLAUDE.md</span>
+          <span class="t-dim"> · </span>
+          <span class="t-green">Cursor rules</span>
+          <span class="t-dim"> · </span>
+          <span class="t-green">Copilot instructions</span>
+          <span class="t-dim"> · </span>
+          <span class="t-green">Windsurf</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DECISIONS IN ACTION -->
+  <section class="section" aria-labelledby="demo-heading">
+    <div class="container">
+      <h2 id="demo-heading">Decisions in action</h2>
+      <div class="demo-grid">
+        <div>
+          <p class="section-label">$ decidex generate</p>
+          <div class="term-block" role="region" aria-label="decidex generate terminal output">
+            <div><span class="t-green">✓</span> <span class="t-muted">Loaded 11 commits (2024-09-01 → 2026-03-21)</span></div>
+            <div><span class="t-green">✓</span> <span class="t-muted">Classified <span class="t-accent">8 decisions</span> — 8 new, 0 unchanged</span></div>
+            <div><span class="t-green">✓</span> <span class="t-muted">Skipped 2 commits (too short to classify)</span></div>
+            <div><span class="t-green">✓</span> <span class="t-muted">Updated CLAUDE.md</span></div>
+            <div class="term-spacer"></div>
+            <div class="t-dim">Decisions captured:</div>
+            <div class="term-spacer"></div>
+            <div>
+              <span class="t-accent">packages/core/</span>
+              <span class="t-dim"> · </span>
+              <span class="t-muted">ClassifierInterface injectable for testing</span>
+              <span class="conf-dots" aria-label="Confidence 5 of 5">
+                <span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span>
+              </span>
+            </div>
+            <div>
+              <span class="t-accent">packages/core/</span>
+              <span class="t-dim"> · </span>
+              <span class="t-muted">atomicWrite() temp in same dir, then rename</span>
+              <span class="conf-dots" aria-label="Confidence 5 of 5">
+                <span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span>
+              </span>
+            </div>
+            <div>
+              <span class="t-accent">packages/cli/ </span>
+              <span class="t-dim"> · </span>
+              <span class="t-muted">Batch 500 commits per API call, retry once</span>
+              <span class="conf-dots" aria-label="Confidence 5 of 5">
+                <span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span>
+              </span>
+            </div>
+            <div>
+              <span class="t-accent">packages/mcp/ </span>
+              <span class="t-dim"> · </span>
+              <span class="t-muted">MCP server: get_decisions + get_stats via stdio</span>
+              <span class="conf-dots" aria-label="Confidence 5 of 5">
+                <span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span>
+              </span>
+            </div>
+            <div>
+              <span class="t-accent">(repo-wide)   </span>
+              <span class="t-dim"> · </span>
+              <span class="t-muted">tsc -b for monorepo, respects ref ordering</span>
+              <span class="conf-dots" aria-label="Confidence 4 of 5">
+                <span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-empty"></span>
+              </span>
+            </div>
+            <div>
+              <span class="t-accent">(repo-wide)   </span>
+              <span class="t-dim"> · </span>
+              <span class="t-muted">Skip commits with subject+body &lt; 20 chars</span>
+              <span class="conf-dots" aria-label="Confidence 4 of 5">
+                <span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-filled"></span><span class="dot dot-empty"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="section-label">CLAUDE.md — managed section</p>
+          <div class="term-block" role="region" aria-label="CLAUDE.md output">
+            <div class="t-dim">&lt;!-- decidex:start --&gt;</div>
+            <div class="t-accent">## Engineering Decisions</div>
+            <div class="t-dim">## (managed by decidex)</div>
+            <div class="term-spacer"></div>
+            <div><span class="t-muted">-</span> ClassifierInterface is injectable for testing.</div>
+            <div class="t-dim">  ClaudeAPIClassifier in prod, mockClassifier() in tests.</div>
+            <div class="term-spacer"></div>
+            <div><span class="t-muted">-</span> atomicWrite() writes to a temp file in the same</div>
+            <div class="t-dim">  directory as target, then renames. Guarantees</div>
+            <div class="t-dim">  same-filesystem move — no cross-device copy.</div>
+            <div class="term-spacer"></div>
+            <div><span class="t-muted">-</span> 500 commits per API batch. Retry once on failure.</div>
+            <div class="t-dim">  Collect all results before writing anything.</div>
+            <div class="term-spacer"></div>
+            <div><span class="t-muted">-</span> tsc -b for monorepo build. Respects project</div>
+            <div class="t-dim">  reference ordering: core → cli → mcp.</div>
+            <div class="term-spacer"></div>
+            <div class="t-dim">&lt;!-- decidex:end --&gt;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" aria-labelledby="features-heading">
+    <div class="container">
+      <h2 id="features-heading">What it does</h2>
+      <div class="feature-grid" role="list">
+        <div class="feature-cell" role="listitem">
+          <div class="feature-label">Incremental</div>
+          <div class="feature-desc">Only new commits classified. Fast after first run.</div>
+        </div>
+        <div class="feature-cell" role="listitem">
+          <div class="feature-label">Multi-tool</div>
+          <div class="feature-desc">Cursor rules. Copilot instructions. Windsurf. One command.</div>
+        </div>
+        <div class="feature-cell" role="listitem">
+          <div class="feature-label">MCP server</div>
+          <div class="feature-desc">Claude Code queries decisions for the file you're editing.</div>
+        </div>
+        <div class="feature-cell" role="listitem">
+          <div class="feature-label">Local mode</div>
+          <div class="feature-desc">Ollama. No API key. Runs on your machine.</div>
+        </div>
+        <div class="feature-cell" role="listitem">
+          <div class="feature-label">Secret scanning</div>
+          <div class="feature-desc">Pre-commit hook blocks accidental secrets in .decisions/.</div>
+        </div>
+        <div class="feature-cell" role="listitem">
+          <div class="feature-label">Manual capture</div>
+          <div class="feature-desc">Decisions not in git: <code>decidex capture "No Passport.js"</code></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="section" aria-label="Stats">
+    <div class="container">
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-value">8</div>
+          <div class="stat-label">decisions captured</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-value">3</div>
+          <div class="stat-label">areas covered</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-value">4</div>
+          <div class="stat-label">AI tools supported</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-value">0</div>
+          <div class="stat-label">forgotten decisions</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL / QUICKSTART -->
+  <section class="section" id="install" aria-labelledby="install-heading">
+    <div class="container">
+      <h2 id="install-heading">Get started</h2>
+      <div class="install-steps">
+
+        <div class="install-step">
+          <div class="step-num t-dim" aria-hidden="true">1</div>
+          <div class="step-content">
+            <div class="step-label">Install</div>
+            <div class="term-block copy-block" role="region" aria-label="Install command">
+              <span class="t-dim">$</span>
+              <span class="cmd-text">npm install -g decidex</span>
+              <button class="copy-btn" aria-label="Copy install command" data-copy="npm install -g decidex">copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="install-step">
+          <div class="step-num t-dim" aria-hidden="true">2</div>
+          <div class="step-content">
+            <div class="step-label">Set your API key</div>
+            <div class="term-block copy-block" role="region" aria-label="API key command">
+              <span class="t-dim">$</span>
+              <span class="cmd-text">export ANTHROPIC_API_KEY=sk-ant-...</span>
+              <button class="copy-btn" aria-label="Copy API key export command" data-copy="export ANTHROPIC_API_KEY=sk-ant-...">copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="install-step">
+          <div class="step-num t-dim" aria-hidden="true">3</div>
+          <div class="step-content">
+            <div class="step-label">Wire up hooks and MCP (once per repo)</div>
+            <div class="term-block copy-block" role="region" aria-label="Init command">
+              <span class="t-dim">$</span>
+              <span class="cmd-text">decidex init</span>
+              <button class="copy-btn" aria-label="Copy init command" data-copy="decidex init">copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="install-step">
+          <div class="step-num t-dim" aria-hidden="true">4</div>
+          <div class="step-content">
+            <div class="step-label">Classify your git history</div>
+            <div class="term-block copy-block" role="region" aria-label="Generate command">
+              <span class="t-dim">$</span>
+              <span class="cmd-text">decidex generate</span>
+              <button class="copy-btn" aria-label="Copy generate command" data-copy="decidex generate">copy</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <p class="install-note">
+        <span class="t-dim">No API key?</span>
+        Use <code>decidex generate --local</code> with Ollama — free, private, runs on your machine.
+      </p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer role="contentinfo">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <span class="footer-logo">decidex</span>
+        <span class="badge badge-muted">MIT</span>
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/poglesbyg/decidex" class="footer-link">GitHub</a>
+        <span class="t-dim" aria-hidden="true">·</span>
+        <span class="t-dim">npm <span id="npm-version">v—</span></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
