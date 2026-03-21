@@ -125,16 +125,108 @@ export class OllamaClassifier implements ClassifierInterface {
     }
 
     const data = (await res.json()) as { response: string };
-    return parseClassifierResponse(data.response);
+    try {
+      return parseClassifierResponse(data.response);
+    } catch (err) {
+      try {
+        // Attempt to write the full JSON body to a local file for debugging
+        const fs = await import("node:fs");
+        const path = await import("node:path");
+        const outDir = path.join(process.cwd(), ".decidex");
+        try {
+          fs.mkdirSync(outDir, { recursive: true });
+          fs.writeFileSync(path.join(outDir, "last_ollama_response.json"), JSON.stringify(data, null, 2), "utf8");
+        } catch {}
+      } catch {}
+      throw err;
+    }
   }
 }
 
-/** Parse and validate the classifier JSON response with one retry on failure. */
+/**
+ * Parse and validate the classifier JSON response with tolerant extraction and
+ * coercion. Attempts multiple extraction strategies (raw JSON, fenced code
+ * blocks, first {...} or [...] span) and coerces common shape issues before
+ * running Zod validation so the classifier is more robust to model output
+ * variations.
+ */
 function parseClassifierResponse(text: string): ClassifiedDecision[] {
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("No JSON found in classifier response");
+  if (!text || !text.trim()) throw new Error("Empty classifier response");
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  let parsed: any | null = null;
+
+  // 1) Try direct JSON parse
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // ignore and try other strategies
+  }
+
+  // 2) Try code fence extraction: ```json ... ``` or ``` ... ```
+  if (parsed === null) {
+    const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fence && fence[1]) {
+      try {
+        parsed = JSON.parse(fence[1]);
+      } catch {
+        // continue to other strategies
+      }
+    }
+  }
+
+  // 3) Try to extract the first {...} or [...] block (greedy to last matching brace)
+  if (parsed === null) {
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    const firstBracket = text.indexOf("[");
+    const lastBracket = text.lastIndexOf("]");
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      const candidate = text.slice(firstBrace, lastBrace + 1);
+      try {
+        parsed = JSON.parse(candidate);
+      } catch {
+        // fallthrough
+      }
+    }
+
+    if (parsed === null && firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      const candidate = text.slice(firstBracket, lastBracket + 1);
+      try {
+        parsed = JSON.parse(candidate);
+      } catch {
+        // still nothing
+      }
+    }
+  }
+
+  if (parsed === null) {
+    // last resort: try to find any {...} span using a simple regex
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error(`No JSON found in classifier response: ${text.slice(0, 240)}`);
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (err) {
+      throw new Error(`Failed to parse JSON from classifier response: ${(err as Error).message}`);
+    }
+  }
+
+  // Normalize common shapes: classifier might return an array directly
+  if (Array.isArray(parsed)) {
+    parsed = { decisions: parsed };
+  }
+
+  // Coerce fields where possible (strings for numbers, ensure tags array, etc.)
+  if (parsed && parsed.decisions && Array.isArray(parsed.decisions)) {
+    parsed.decisions = parsed.decisions.map((d: any) => ({
+      area: typeof d.area === "string" ? d.area : "",
+      text: typeof d.text === "string" ? d.text : String(d.text ?? ""),
+      confidence: (typeof d.confidence === "number" ? d.confidence : parseInt(String(d.confidence ?? "3"), 10)),
+      rationale: typeof d.rationale === "string" ? d.rationale : String(d.rationale ?? ""),
+      tags: Array.isArray(d.tags) ? d.tags.map((t: any) => String(t)) : [],
+    }));
+  }
+
   const validated = ClassifierOutputSchema.parse(parsed);
   return validated.decisions;
 }
@@ -229,24 +321,36 @@ export async function classifyCommits(
 
   const allDecisions: ClassifiedDecision[] = [];
   const batchErrors: string[] = [];
-
-  for (let i = 0; i < batches.length; i++) {
-    const batch = batches[i];
-    let decisions: ClassifiedDecision[] | null = null;
-
-    // Try once, retry once on failure
+  async function classifyBatch(batch: CommitEntry[], idxLabel: string): Promise<void> {
+    // Try twice; on persistent failure, split the batch and retry sub-batches.
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        decisions = await classifier.classify(batch, repoName);
-        break;
+        const decisions = await classifier.classify(batch, repoName);
+        allDecisions.push(...decisions);
+        return;
       } catch (err) {
-        if (attempt === 1) {
-          batchErrors.push(`Batch ${i + 1}/${batches.length}: ${(err as Error).message}`);
-        }
+        if (attempt === 0) continue; // retry once
+        // after retry, fall through to splitting
       }
     }
 
-    if (decisions) allDecisions.push(...decisions);
+    // If batch is single commit and still fails, record error
+    if (batch.length <= 1) {
+      batchErrors.push(`${idxLabel}: Empty classifier response`);
+      return;
+    }
+
+    // Split batch in half and try each half (binary split to reduce prompt size)
+    const mid = Math.floor(batch.length / 2);
+    const left = batch.slice(0, mid);
+    const right = batch.slice(mid);
+    await classifyBatch(left, `${idxLabel}.L`);
+    await classifyBatch(right, `${idxLabel}.R`);
+  }
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    await classifyBatch(batch, `Batch ${i + 1}/${batches.length}`);
   }
 
   return { decisions: allDecisions, skippedCount, batchErrors };

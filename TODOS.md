@@ -14,6 +14,19 @@
 
 ---
 
+## Landing Page
+
+### Light Mode
+**What:** Implement `[data-theme="light"]` CSS variable swap on the landing page, with a toggle button in the nav.
+**Why:** DESIGN.md fully specifies the light palette — it's implementation-ready. Deferred to keep initial launch scope tight.
+**Pros:** Respects `prefers-color-scheme: light` OS preference; feels polished.
+**Cons:** Amber on light background needs careful contrast checking (4.8:1 only passes AA at large text).
+**Context:** CLI tool audience skews dark-mode. This is polish, not table stakes. Build after landing page ships and gets first users.
+**Effort:** S (human: half day / CC: 15 min)
+**Depends on:** Landing page must ship first
+
+---
+
 ## P2 — Phase 2 Work
 
 ### Conflict Detection for Team Decisions
