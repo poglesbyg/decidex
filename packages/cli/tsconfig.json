@@ -12,12 +12,11 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "composite": true,
-    "baseUrl": ".",
-    "paths": {
-      "@decidex/core": ["../core/dist/index"]
-    }
+    "composite": true
   },
+  "references": [
+    { "path": "../core" }
+  ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

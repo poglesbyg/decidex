@@ -72,16 +72,19 @@ describe("classifyCommits", () => {
   });
 
   it("records batch error when classifier fails both attempts", async () => {
+    // 2 commits → fails → splits into 2 single-commit sub-batches → each records an error
     const result = await classifyCommits(commits, failingClassifier("API timeout"), REPO_NAME);
     expect(result.decisions).toHaveLength(0);
-    expect(result.batchErrors).toHaveLength(1);
+    expect(result.batchErrors).toHaveLength(2);
     expect(result.batchErrors[0]).toContain("API timeout");
+    expect(result.batchErrors[1]).toContain("API timeout");
   });
 
   it("retries once before giving up", async () => {
+    // 2-commit batch: 2 attempts + splits into 2 single-commit batches (2 attempts each) = 6 total
     const classifier = failingClassifier("network error");
     await classifyCommits(commits, classifier, REPO_NAME);
-    expect(classifier.classify).toHaveBeenCalledTimes(2); // tried twice
+    expect(classifier.classify).toHaveBeenCalledTimes(6);
   });
 
   it("skips short commits, reports skippedCount", async () => {
