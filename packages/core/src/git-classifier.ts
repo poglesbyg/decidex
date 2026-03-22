@@ -94,7 +94,7 @@ export class ClaudeAPIClassifier implements ClassifierInterface {
   async classify(commits: CommitEntry[], repoName: string): Promise<ClassifiedDecision[]> {
     const prompt = buildPrompt(commits, repoName);
     const response = await this.client.messages.create({
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
     });
@@ -350,12 +350,14 @@ export async function classifyCommits(
   const batchErrors: string[] = [];
   async function classifyBatch(batch: CommitEntry[], idxLabel: string): Promise<void> {
     // Try twice; on persistent failure, split the batch and retry sub-batches.
+    let lastErr: unknown;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const decisions = await classifier.classify(batch, repoName);
         allDecisions.push(...decisions);
         return;
       } catch (err) {
+        lastErr = err;
         if (attempt === 0) continue; // retry once
         // after retry, fall through to splitting
       }
@@ -363,7 +365,8 @@ export async function classifyCommits(
 
     // If batch is single commit and still fails, record error
     if (batch.length <= 1) {
-      batchErrors.push(`${idxLabel}: Empty classifier response`);
+      const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+      batchErrors.push(`${idxLabel}: ${msg}`);
       return;
     }
 
