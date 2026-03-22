@@ -245,10 +245,10 @@ function parseClassifierResponse(text: string): ClassifiedDecision[] {
 
   // Coerce fields where possible (strings for numbers, ensure tags array, etc.)
   if (parsed && parsed.decisions && Array.isArray(parsed.decisions)) {
-    parsed.decisions = parsed.decisions.map((d: any) => ({
+    parsed.decisions = parsed.decisions.map((d: any): ClassifiedDecision => ({
       area: typeof d.area === "string" ? d.area : "",
       text: typeof d.text === "string" ? d.text : String(d.text ?? ""),
-      confidence: (typeof d.confidence === "number" ? d.confidence : parseInt(String(d.confidence ?? "3"), 10)),
+      confidence: (typeof d.confidence === "number" ? d.confidence : parseInt(String(d.confidence ?? "3"), 10)) as ClassifiedDecision["confidence"],
       rationale: typeof d.rationale === "string" ? d.rationale : String(d.rationale ?? ""),
       tags: Array.isArray(d.tags) ? d.tags.map((t: any) => String(t)) : [],
     }));
